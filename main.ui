@@ -54,7 +54,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="EditorTableWidget" name="tableWidget"/>
+       <widget class="EditorTableView" name="tableView"/>
       </widget>
       <widget class="QPlainTextEdit" name="loggerWidget">
        <property name="readOnly">
@@ -179,9 +179,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>EditorTableWidget</class>
+   <class>EditorTableView</class>
    <extends>QTableWidget</extends>
-   <header>editortablewidget.h</header>
+   <header>editortableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

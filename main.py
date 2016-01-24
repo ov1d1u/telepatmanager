@@ -101,7 +101,7 @@ class TelepatManager(QtWidgets.QMainWindow):
     def editItem(self, index):
         item = self.contexts_model.itemFromIndex(index.model().mapToSource(index))
         if type(item) == ContextItem:
-            self.tableWidget.editObject(item.context)
+            self.tableView.editObject(item.context)
 
     def showNameId(self):
         i = 0

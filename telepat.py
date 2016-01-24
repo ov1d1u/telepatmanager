@@ -84,6 +84,14 @@ class TelepatContext(TelepatBaseObject):
         patch["patches"] = patches
         return patch
 
+    @property
+    def object_id(self):
+        return self.id
+
+    @object_id.setter
+    def object_id(self, value):
+        self.id = value
+
 
 class TelepatResponse:
     def __init__(self, response):
