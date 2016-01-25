@@ -25,10 +25,7 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <widget class="QWidget" name="layoutWidget">
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <property name="spacing">
-          <number>0</number>
-         </property>
+        <layout class="QVBoxLayout" name="treeViewLayout">
          <item>
           <widget class="QLineEdit" name="filterLineEdit">
            <property name="placeholderText">

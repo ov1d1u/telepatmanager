@@ -29,11 +29,11 @@ class TelepatManager(QtWidgets.QMainWindow):
 
         # Set up the UI
         self.actionRefresh.setEnabled(False)
-        self.verticalLayout.setSpacing(0)
         self.loggerWidget.setFont(QtGui.QFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)))
         self.setupHistoryMenu()
         self.setupSplitters()
         self.setupAppsCombobox()
+        self.treeViewLayout.setContentsMargins(0, 0, 0, 0)
 
         self.contexts_model = QtGui.QStandardItemModel()
         self.proxy = QtCore.QSortFilterProxyModel(self)
