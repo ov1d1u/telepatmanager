@@ -1,5 +1,5 @@
 from PyQt5 import QtCore
-from telepat import TelepatContext, TelepatResponse
+from telepat import TelepatContext, TelepatResponse, TelepatError
 
 class BaseWorker(QtCore.QThread):
     log = QtCore.pyqtSignal(str)
@@ -9,11 +9,15 @@ class RegisterWorker(BaseWorker):
     success = QtCore.pyqtSignal()
     failed = QtCore.pyqtSignal(int, str)
 
+    def __init__(self, parent, update=False):
+        self.update = update
+        super(RegisterWorker, self).__init__(parent)
+
     def run(self):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
         try:
             self.log.emit("Registering device...")
-            register_response = telepat.register_device()
+            register_response = telepat.register_device(self.update)
             if not register_response.status_code == 200:
                 msg = "Failed to register device"
                 if "message" in register_response.json():
@@ -23,7 +27,7 @@ class RegisterWorker(BaseWorker):
             else:
                 self.log.emit("Registered with device id: {0}".format(telepat.device_id))
                 self.success.emit()
-        except telepat.TelepatError as e:
+        except TelepatError as e:
             self.failed.emit(900, str(e))
 
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-5.1.dtd">
 <!-- eric project file for project TelepatManager -->
-<!-- Saved: 2016-01-24, 21:59:27 -->
+<!-- Saved: 2016-01-25, 03:35:41 -->
 <!-- Copyright (C) 2016 Telepat.io,  -->
 <Project version="5.1">
   <Language>en_US</Language>
@@ -12,13 +12,13 @@
   <Version>0.1</Version>
   <Author>Telepat.io</Author>
   <Email></Email>
+  <Eol index="-1"/>
   <Sources>
     <Source>__init__.py</Source>
     <Source>conneditor.py</Source>
     <Source>console.py</Source>
     <Source>contextitem.py</Source>
-    <Source>editortablewidget.py</Source>
-    <Source>filter.py</Source>
+    <Source>editortableview.py</Source>
     <Source>main.py</Source>
     <Source>settings.py</Source>
     <Source>telepat.py</Source>

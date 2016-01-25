@@ -5,7 +5,7 @@ from functools import partial
 from PyQt5 import QtGui, QtCore, QtWidgets, uic
 from conneditor import ConnectionEditor
 from contextitem import ContextItem
-from workers import ContextsWorker, SchemaWorker, ApplicationsWorker
+from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker
 from settings import tmsettings
 import console
 
@@ -93,6 +93,8 @@ class TelepatManager(QtWidgets.QMainWindow):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
         app = self.applications[index]
         telepat.app_id = app["id"]
+        telepat.api_key = app["keys"][0]
+        self.registerDevice()
         self.refreshContexts()
 
     def filterChanged(self):
@@ -108,6 +110,19 @@ class TelepatManager(QtWidgets.QMainWindow):
         while self.contexts_model.item(i):
             self.contexts_model.item(i).show_name(self.actionShowNameId.isChecked())
             i += 1
+            
+    def registerDevice(self):
+        def register_success():
+            pass
+            
+        def register_failed(err_code, msg):
+            QtWidgets.QMessageBox.critical(self, "Failed to retrieve applications", "Error {0}: {1}".format(err_code, msg))
+        
+        self.register_worker = RegisterWorker(self)
+        self.register_worker.success.connect(register_success)
+        self.register_worker.failed.connect(register_failed)
+        self.register_worker.log.connect(console.log)
+        self.register_worker.start()
 
     def login_success(self):
         def apps_success(apps_list):

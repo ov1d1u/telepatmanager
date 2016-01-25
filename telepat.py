@@ -256,8 +256,8 @@ class Telepat(object):
             response_json = response.json()
             if "identifier" in response_json["content"]:
                 device_id = response_json["content"]["identifier"]
+                self.device_id = device_id
                 self.db.set_operations_data("device_id", device_id)
-        print(response)
         return response
 
     def login_admin(self, username, password):
