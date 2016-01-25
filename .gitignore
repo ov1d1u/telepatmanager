@@ -20,6 +20,7 @@ lib64/
 parts/
 sdist/
 var/
+.eric6project/
 *.egg-info/
 .installed.cfg
 *.egg
