@@ -155,6 +155,9 @@ class TelepatDB:
 
     def empty(self):
         self.db.clear()
+        
+    def close(self):
+        self.db.close()
 
 
 class Telepat(object):
@@ -289,3 +292,8 @@ class Telepat(object):
     def update_context(self, updated_context):
         context = self.context_map()[updated_context.id]
         return TelepatResponse(self._post("/admin/context/update", context.patch_against(updated_context), {}))
+        
+    def disconnect(self):
+        if self.socketIO:
+            self.socketIO.disconnect()
+        self.db.close()

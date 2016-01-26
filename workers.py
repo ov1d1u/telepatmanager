@@ -1,9 +1,14 @@
 from PyQt5 import QtCore
 from telepat import TelepatContext, TelepatResponse, TelepatError
+from requests.exceptions import ConnectionError
+import errors
 
 class BaseWorker(QtCore.QThread):
     log = QtCore.pyqtSignal(str)
 
+    def connection_error(self, e):
+        self.log.emit("Connection error: {0}".format(str(e)))
+        self.failed.emit(errors.TELEPAT_CONNECTION_ERROR, "Connection error")
 
 class RegisterWorker(BaseWorker):
     success = QtCore.pyqtSignal()
@@ -28,7 +33,7 @@ class RegisterWorker(BaseWorker):
                 self.log.emit("Registered with device id: {0}".format(telepat.device_id))
                 self.success.emit()
         except TelepatError as e:
-            self.failed.emit(900, str(e))
+            self.failed.emit(errors.TELEPAT_GENERAL_ERROR, str(e))
 
 
 class LoginWorker(BaseWorker):
@@ -42,7 +47,12 @@ class LoginWorker(BaseWorker):
 
     def run(self):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
-        login_response = telepat.login_admin(self.username, self.password)
+        try:
+            login_response = telepat.login_admin(self.username, self.password)
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
+            
         if not login_response.status_code == 200:
             msg = "Failed to login admin"
             if "message" in login_response.json():
@@ -60,7 +70,11 @@ class ContextsWorker(BaseWorker):
 
     def run(self):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
-        contexts_response = telepat.get_all()
+        try:
+            contexts_response = telepat.get_all()
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
         if not contexts_response.status == 200:
             msg = "Failed to retrieve contexts"
             if contexts_response.message:
@@ -78,7 +92,11 @@ class SchemaWorker(BaseWorker):
 
     def run(self):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
-        schema_response = telepat.get_schema()
+        try:
+            schema_response = telepat.get_schema()
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
         if not schema_response.status_code == 200:
             msg = "Failed to retrieve schema"
             if "message" in schema_response.json():
@@ -97,7 +115,11 @@ class ApplicationsWorker(BaseWorker):
 
     def run(self):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
-        apps_response = telepat.get_apps()
+        try:
+            apps_response = telepat.get_apps()
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
         if not apps_response.status_code == 200:
             msg = "Failed to retrieve applications"
             if "message" in apps_response.json():
@@ -120,7 +142,11 @@ class ContextPatchWorker(BaseWorker):
     
     def run(self):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
-        update_response = telepat.update_context(self.context)
+        try:
+            update_response = telepat.update_context(self.context)
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
         if not update_response.status == 200:
             self.log.emit("Error {0} while patching context: {1}".format(update_response.status, update_response.message))
             self.failed.emit(update_response.status, update_response.message)

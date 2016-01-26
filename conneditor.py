@@ -68,6 +68,8 @@ class ConnectionEditor(QtWidgets.QDialog):
             return
 
         self.status_label.setText("Status: Connecting")
+        if QtCore.QCoreApplication.instance().telepat_instance:
+            QtCore.QCoreApplication.instance().telepat_instance.disconnect()
         QtCore.QCoreApplication.instance().telepat_instance = Telepat(self.serverUrl.text(), self.socketsUrl.text())
         self.login_worker = LoginWorker(self, self.adminUsername.text(), self.adminPassword.text())
         self.login_worker.success.connect(self.login_success)
