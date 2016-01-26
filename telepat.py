@@ -164,8 +164,8 @@ class Telepat(object):
     def __init__(self, remote_url, sockets_url):
         self.device_id = ""
         self.token = ""
-        self.app_id = ""
         self.bearer = ""
+        self._app_id = ""
         self._api_key = ""
         self._remote_url = ""
         self._mServerContexts = {}
@@ -175,8 +175,6 @@ class Telepat(object):
         self.sockets_url = sockets_url
 
         self.db = TelepatDB()
-        if self.db.get_operations_data("device_id"):
-            self.device_id = self.db.get_operations_data("device_id")
 
     def _start_ws(self):
         def on_socket_welcome(*args):
@@ -222,6 +220,19 @@ class Telepat(object):
     @api_key.setter
     def api_key(self, value):
         self._api_key = hashlib.sha256(value.encode()).hexdigest()
+        
+    @property
+    def app_id(self):
+        return self._app_id
+        
+    @app_id.setter
+    def app_id(self, value):
+        self._app_id = value
+        device_id_key = "device_id_{0}".format(self.app_id)
+        if self.db.get_operations_data(device_id_key):
+            self.device_id = self.db.get_operations_data(device_id_key)
+        else:
+            self.device_id = ""
 
     @property
     def remote_url(self):
@@ -263,7 +274,7 @@ class Telepat(object):
             if "identifier" in response_json["content"]:
                 device_id = response_json["content"]["identifier"]
                 self.device_id = device_id
-                self.db.set_operations_data("device_id", device_id)
+                self.db.set_operations_data("device_id_{0}".format(self.app_id), device_id)
         return response
 
     def login_admin(self, username, password):
