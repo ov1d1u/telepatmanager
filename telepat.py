@@ -166,6 +166,7 @@ class Telepat(object):
         self._api_key = ""
         self._remote_url = ""
         self._mServerContexts = {}
+        self.socketIO = None
 
         self.remote_url = remote_url
         self.sockets_url = sockets_url
@@ -173,10 +174,6 @@ class Telepat(object):
         self.db = TelepatDB()
         if self.db.get_operations_data("device_id"):
             self.device_id = self.db.get_operations_data("device_id")
-
-        self.token_event = threading.Event()
-        self.ws_thread = threading.Thread(target=self._start_ws)
-        self.ws_thread.start()
 
     def _start_ws(self):
         def on_socket_welcome(*args):
@@ -235,6 +232,12 @@ class Telepat(object):
         return self._mServerContexts
 
     def register_device(self, update=False):
+        if self.socketIO:
+            self.socketIO.disconnect()
+            self.socketIO = None
+        self.token_event = threading.Event()
+        self.ws_thread = threading.Thread(target=self._start_ws)
+        self.ws_thread.start()
         self.token_event.wait(15)
         if not self.token:
             if hasattr(self, "socketIO"):
