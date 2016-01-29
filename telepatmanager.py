@@ -31,6 +31,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.setupSplitters()
         self.setupAppsCombobox()
         self.treeViewLayout.setContentsMargins(0, 0, 0, 0)
+        self.setUnifiedTitleAndToolBarOnMac(True)
 
         self.contexts_model = QtGui.QStandardItemModel()
         self.proxy = QtCore.QSortFilterProxyModel(self)
