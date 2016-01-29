@@ -1,5 +1,5 @@
 # telepatmanager
-A Qt manager for the Telepat API
+A (yet-incomplete) Qt manager for the Telepat API
 
 ### Installation
 
