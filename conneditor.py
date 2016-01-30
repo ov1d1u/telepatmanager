@@ -68,6 +68,9 @@ class ConnectionEditor(QtWidgets.QDialog):
             return
 
         self.status_label.setText("Status: Connecting")
+        self.serverGroupBox.setDisabled(True)
+        self.authGroupBox.setDisabled(True)
+        self.buttonBox.setDisabled(True)
         if QtCore.QCoreApplication.instance().telepat_instance:
             QtCore.QCoreApplication.instance().telepat_instance.disconnect()
         QtCore.QCoreApplication.instance().telepat_instance = Telepat(self.serverUrl.text(), self.socketsUrl.text())
@@ -83,5 +86,8 @@ class ConnectionEditor(QtWidgets.QDialog):
         super(ConnectionEditor, self).accept()
 
     def login_failed(self, err_code, message):
-        self.status_label.setText("Status: Authentication error")
+        self.serverGroupBox.setDisabled(False)
+        self.authGroupBox.setDisabled(False)
+        self.buttonBox.setDisabled(False)
+        self.status_label.setText("Status: Error")
         errorDialog = QtWidgets.QMessageBox.critical(self, "Login error", "Error {0}: {1}".format(err_code, message))

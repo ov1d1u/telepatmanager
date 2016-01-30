@@ -1,11 +1,13 @@
 import traceback
 import time
 import io
+from copy import copy
 from PyQt5 import QtGui, QtCore, QtWidgets, uic
 from settings import tmsettings
 from functools import partial
 from conneditor import ConnectionEditor
 from contextitem import ContextItem
+from modelitem import ModelItem
 from exceptionevent import ExceptionEvent
 from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker
 import console
@@ -66,12 +68,13 @@ class TelepatManager(QtWidgets.QMainWindow):
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(widget)
         self.appsCombobox = QtWidgets.QComboBox(self)
-        self.appsCombobox.setEnabled(False)
+        self.appsCombobox.setDisabled(True)
+        self.actionEditApp.setDisabled(True)
         self.appsCombobox.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
         self.appsCombobox.currentIndexChanged.connect(self.currentAppChanged)
         layout.addWidget(QtWidgets.QLabel("Application:"))
         layout.addWidget(self.appsCombobox)
-        self.toolBar.addWidget(widget)
+        self.toolBar.insertWidget(self.actionEditApp, widget)
 
     def openConnection(self, connection_dict=None):
         self.connectionEditor = ConnectionEditor(self, connection_dict)
@@ -102,6 +105,8 @@ class TelepatManager(QtWidgets.QMainWindow):
         item = self.contexts_model.itemFromIndex(index.model().mapToSource(index))
         if type(item) == ContextItem:
             self.tableView.editObject(item.context)
+        elif type(item) == ModelItem:
+            self.tableView.editObject(item.model)
 
     def showNameId(self):
         i = 0
@@ -127,7 +132,8 @@ class TelepatManager(QtWidgets.QMainWindow):
             self.applications = apps_list
             for app in self.applications:
                 self.appsCombobox.addItem("{0} ({1})".format(app["name"], app["id"]))
-            self.appsCombobox.setEnabled(True)
+            self.appsCombobox.setDisabled(False)
+            self.actionEditApp.setDisabled(False)
 
         def apps_failed(err_code, msg):
             QtWidgets.QMessageBox.critical(self, "Failed to retrieve applications", "Error {0}: {1}".format(err_code, msg))
@@ -139,9 +145,9 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.apps_worker.start()
 
     def contexts_success(self, contexts_list):
-        def schema_success(models_dict):
+        def schema_success(application):
             self.actionRefresh.setEnabled(True)
-            self.contexts_cb(contexts_list, models_dict)
+            self.contexts_cb(contexts_list, application)
 
         def schema_failed(err_code, msg):
             self.actionRefresh.setEnabled(True)
@@ -157,14 +163,14 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.actionRefresh.setEnabled(True)
         QtWidgets.QMessageBox.critical(self, "Contexts retrieving error", "Error {0}: {1}".format(err_code, msg))
 
-    def contexts_cb(self, contexts_list, models_dict):
+    def contexts_cb(self, contexts_list, application):
         self.contexts_model.setHorizontalHeaderLabels(["Contexts"])
         self.actionRefresh.setEnabled(True)
         for ctx in contexts_list:
             item = ContextItem(ctx)
             item.setEditable(False)
-            for key in models_dict:
-                subitem = QtGui.QStandardItem(self.style().standardIcon(QtWidgets.QStyle.SP_FileIcon), key)
+            for key in application:
+                subitem = ModelItem(key, application[key])
                 subitem.setEditable(False)
                 item.appendRow(subitem)
             self.contexts_model.appendRow(item)

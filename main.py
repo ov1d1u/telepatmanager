@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import os
 import sys
+import iconrc
 from PyQt5 import QtWidgets
 from telepatmanager import TelepatManager
 

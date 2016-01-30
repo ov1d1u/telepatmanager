@@ -2,6 +2,9 @@ from PyQt5 import QtCore
 from telepat import TelepatContext, TelepatResponse, TelepatError
 from requests.exceptions import ConnectionError
 import errors
+from models.context import Context
+from models.model import Model
+from telepat.models import TelepatAppSchema
 
 class BaseWorker(QtCore.QThread):
     log = QtCore.pyqtSignal(str)
@@ -82,12 +85,12 @@ class ContextsWorker(BaseWorker):
             self.log.emit("Error {0} while retrieving contexts: {1}".format(contexts_response.status, msg))
             self.failed.emit(contexts_response.status, msg)
         else:
-            contexts_list = contexts_response.getObjectOfType(TelepatContext)
+            contexts_list = contexts_response.getObjectOfType(Context)
             self.log.emit("Successfully retrieved {0} contexts".format(len(contexts_list)))
             self.success.emit(contexts_list)
 
 class SchemaWorker(BaseWorker):
-    success = QtCore.pyqtSignal(dict)
+    success = QtCore.pyqtSignal(TelepatAppSchema)
     failed = QtCore.pyqtSignal(int, str)
 
     def run(self):
@@ -97,16 +100,16 @@ class SchemaWorker(BaseWorker):
         except ConnectionError as e:
             self.connection_error(e)
             return
-        if not schema_response.status_code == 200:
+        if not schema_response.status == 200:
             msg = "Failed to retrieve schema"
             if "message" in schema_response.json():
                 msg = schema_response.json()["message"]
             self.log.emit("Error {0} while retrieving schema: {1}".format(schema_response.status_code, msg))
             self.failed.emit(schema_response.status_code, msg)
         else:
-            models_dict = schema_response.json()
+            app_schema = schema_response.getObjectOfType(TelepatAppSchema)
             self.log.emit("Successfully retrieved application schema")
-            self.success.emit(models_dict["content"])
+            self.success.emit(app_schema)
 
 
 class ApplicationsWorker(BaseWorker):

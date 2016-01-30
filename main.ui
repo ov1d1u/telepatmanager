@@ -51,7 +51,50 @@
          </item>
         </layout>
        </widget>
-       <widget class="EditorTableView" name="tableView"/>
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="tabShape">
+         <enum>QTabWidget::Rounded</enum>
+        </property>
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <property name="documentMode">
+         <bool>false</bool>
+        </property>
+        <widget class="QWidget" name="tabBrowser">
+         <attribute name="title">
+          <string>Browser</string>
+         </attribute>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item>
+             <widget class="QLineEdit" name="browserFilterLineEdit">
+              <property name="placeholderText">
+               <string>Filter</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listView"/>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tabEditor">
+         <attribute name="title">
+          <string>Editor</string>
+         </attribute>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="EditorTableView" name="tableView"/>
+          </item>
+         </layout>
+         <zorder>tableView</zorder>
+         <zorder>tableView</zorder>
+        </widget>
+       </widget>
       </widget>
       <widget class="QPlainTextEdit" name="loggerWidget">
        <property name="readOnly">
@@ -120,20 +163,18 @@
    <addaction name="actionConnect"/>
    <addaction name="actionRefresh"/>
    <addaction name="separator"/>
+   <addaction name="actionEditApp"/>
   </widget>
   <action name="actionQuit">
-   <property name="icon">
-    <iconset theme="application-exit">
-     <normaloff>.</normaloff>.</iconset>
-   </property>
    <property name="text">
     <string>&amp;Quit</string>
    </property>
   </action>
   <action name="actionConnect">
    <property name="icon">
-    <iconset theme="network-wired">
-     <normaloff>.</normaloff>.</iconset>
+    <iconset theme="network-server">
+     <normalon>:/icon/ic_settings_input_antenna_48pt_@3x.png</normalon>
+    </iconset>
    </property>
    <property name="text">
     <string>&amp;Connect...</string>
@@ -150,7 +191,8 @@
   <action name="actionRefresh">
    <property name="icon">
     <iconset theme="view-refresh">
-     <normaloff>.</normaloff>.</iconset>
+     <normalon>:/icon/ic_refresh_48pt_@3x.png</normalon>
+    </iconset>
    </property>
    <property name="text">
     <string>Refresh</string>
@@ -173,6 +215,17 @@
     <string>Show names instead of IDs</string>
    </property>
   </action>
+  <action name="actionEditApp">
+   <property name="icon">
+    <iconset theme="preferences-other"/>
+   </property>
+   <property name="text">
+    <string>Edit application</string>
+   </property>
+   <property name="toolTip">
+    <string>Edit application schema</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -181,7 +234,9 @@
    <header>editortableview.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources/icons.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>actionQuit</sender>

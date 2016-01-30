@@ -1,3 +1,3 @@
 [submodule "telepat-python"]
-	path = telepat-python
+	path = telepat
 	url = git@github.com:ov1d1u/telepat-python.git
