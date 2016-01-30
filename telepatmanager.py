@@ -5,12 +5,15 @@ from copy import copy
 from PyQt5 import QtGui, QtCore, QtWidgets, uic
 from settings import tmsettings
 from functools import partial
+from const import *
 from conneditor import ConnectionEditor
 from contextitem import ContextItem
 from modelitem import ModelItem
-from exceptionevent import ExceptionEvent
+from event import ExceptionEvent, TelepatObjectEvent
 from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker
+from telepat.transportnotification import NOTIFICATION_TYPE_ADDED, NOTIFICATION_TYPE_DELETED, NOTIFICATION_TYPE_UPDATED
 import console
+
 
 class TelepatManager(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
@@ -90,6 +93,10 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.contexts_worker.log.connect(console.log)
         self.contexts_worker.start()
 
+    def on_update_context(self, context, notification):
+        event = TelepatObjectEvent(context, notification)
+        QtWidgets.QApplication.postEvent(self, event)
+
     def currentAppChanged(self, index):
         telepat = QtCore.QCoreApplication.instance().telepat_instance
         app = self.applications[index]
@@ -164,6 +171,9 @@ class TelepatManager(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.critical(self, "Contexts retrieving error", "Error {0}: {1}".format(err_code, msg))
 
     def contexts_cb(self, contexts_list, application):
+        telepat = QtCore.QCoreApplication.instance().telepat_instance
+        telepat.on_update_context = self.on_update_context
+
         self.contexts_model.setHorizontalHeaderLabels(["Contexts"])
         self.actionRefresh.setEnabled(True)
         for ctx in contexts_list:
@@ -178,6 +188,16 @@ class TelepatManager(QtWidgets.QMainWindow):
     def event(self, event):
         if isinstance(event, ExceptionEvent):
             event.callback()
+        elif isinstance(event, TelepatObjectEvent):
+            context = event.updated_object
+            i = 0
+            while self.contexts_model.item(i):
+                if context.id == self.contexts_model.item(i).context.id:
+                    if event.notification.notification_type == NOTIFICATION_TYPE_UPDATED:
+                        print("FOUND: {0}".format(context.id))
+                        self.contexts_model.item(i).context = event.updated_object
+                        break
+                i += 1
         return super(TelepatManager, self).event(event)
         
     def excepthook(self, excType, excValue, tracebackobj):
@@ -196,7 +216,7 @@ class TelepatManager(QtWidgets.QMainWindow):
             msg = '\n'.join(sections)
             QtWidgets.QMessageBox.critical(None, "Fatal error", str(notice)+str(msg))
         
-        event = ExceptionEvent(12345)
+        event = ExceptionEvent(TM_EVENT_EXCEPTION)
         event.callback = show_message
         QtWidgets.QApplication.postEvent(self, event)
 
