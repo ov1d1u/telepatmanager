@@ -4,7 +4,8 @@ from requests.exceptions import ConnectionError
 import errors
 from models.context import Context
 from models.model import Model
-from telepat.models import TelepatAppSchema
+from telepat.models import TelepatApplication, TelepatAppSchema
+from telepat import TelepatTransportNotification
 
 class BaseWorker(QtCore.QThread):
     log = QtCore.pyqtSignal(str)
@@ -123,16 +124,16 @@ class ApplicationsWorker(BaseWorker):
         except ConnectionError as e:
             self.connection_error(e)
             return
-        if not apps_response.status_code == 200:
+        if not apps_response.status == 200:
             msg = "Failed to retrieve applications"
             if "message" in apps_response.json():
                 msg = apps_response.json()["message"]
             self.log.emit("Error {0} while retrieving applications: {1}".format(apps_response.status_code, msg))
             self.failed.emit(apps_response.status_code, msg)
         else:
-            apps_list = apps_response.json()
+            apps_list = apps_response.getObjectOfType(TelepatApplication)
             self.log.emit("Successfully retrieved {0} applications".format(len(apps_list)))
-            self.success.emit(apps_list["content"])
+            self.success.emit(apps_list)
             
             
 class ContextPatchWorker(BaseWorker):

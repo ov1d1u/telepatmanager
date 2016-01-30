@@ -14,7 +14,7 @@ class EditorTableModel(QtCore.QAbstractTableModel):
         super(EditorTableModel, self).__init__(parent)
         self._basemodel = basemodel
         rows = []
-        for key in sorted(basemodel.properties().keys()):
+        for key in sorted(basemodel.keys()):
             if not basemodel.isIgnored(key):
                 rows.append([key, basemodel[key]])
         self.columns = ["Key", "Value"]

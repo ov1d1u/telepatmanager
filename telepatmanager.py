@@ -6,11 +6,11 @@ from PyQt5 import QtGui, QtCore, QtWidgets, uic
 from settings import tmsettings
 from functools import partial
 from const import *
+from event import TelepatContextAddEvent, TelepatContextUpdateEvent, ExceptionEvent
 from conneditor import ConnectionEditor
 from contextitem import ContextItem
 from models.context import Context
 from modelitem import ModelItem
-from event import ExceptionEvent, TelepatObjectEvent
 from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker
 from telepat.transportnotification import NOTIFICATION_TYPE_ADDED, NOTIFICATION_TYPE_DELETED, NOTIFICATION_TYPE_UPDATED
 import console
@@ -86,16 +86,41 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.connectionEditor.show()
 
     def refreshContexts(self):
+        def contexts_success(contexts_list):
+            telepat = QtCore.QCoreApplication.instance().telepat_instance
+            telepat.on_update_context = self.on_update_context
+            telepat.on_add_context = self.on_add_context
+            application = self.applications[self.appsCombobox.currentIndex()]
+
+            self.contexts_model.setHorizontalHeaderLabels(["Contexts"])
+            self.actionRefresh.setEnabled(True)
+            for ctx in contexts_list:
+                item = ContextItem(ctx)
+                item.setEditable(False)
+                for key in application.schema:
+                    subitem = ModelItem(key, application.schema[key])
+                    subitem.setEditable(False)
+                    item.appendRow(subitem)
+                self.contexts_model.appendRow(item)
+
+        def contexts_failed(err_code, msg):
+            self.actionRefresh.setEnabled(True)
+            QtWidgets.QMessageBox.critical(self, "Contexts retrieving error", "Error {0}: {1}".format(err_code, msg))
+
         self.actionRefresh.setEnabled(False)
         self.contexts_model.clear()
         self.contexts_worker = ContextsWorker(self)
-        self.contexts_worker.success.connect(self.contexts_success)
-        self.contexts_worker.failed.connect(self.contexts_failed)
+        self.contexts_worker.success.connect(contexts_success)
+        self.contexts_worker.failed.connect(contexts_failed)
         self.contexts_worker.log.connect(console.log)
         self.contexts_worker.start()
 
     def on_update_context(self, context, notification):
-        event = TelepatObjectEvent(context, notification)
+        event = TelepatContextUpdateEvent(context, notification)
+        QtWidgets.QApplication.postEvent(self, event)
+
+    def on_add_context(self, context, notification):
+        event = TelepatContextAddEvent(context, notification)
         QtWidgets.QApplication.postEvent(self, event)
 
     def currentAppChanged(self, index):
@@ -139,7 +164,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         def apps_success(apps_list):
             self.applications = apps_list
             for app in self.applications:
-                self.appsCombobox.addItem("{0} ({1})".format(app["name"], app["id"]))
+                self.appsCombobox.addItem("{0} ({1})".format(app.name, app.id))
             self.appsCombobox.setDisabled(False)
             self.actionEditApp.setDisabled(False)
 
@@ -152,53 +177,38 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.apps_worker.log.connect(console.log)
         self.apps_worker.start()
 
-    def contexts_success(self, contexts_list):
-        def schema_success(application):
-            self.actionRefresh.setEnabled(True)
-            self.contexts_cb(contexts_list, application)
+    def process_context_add_event(self, event):
+        application = self.applications[self.appsCombobox.currentIndex()]
+        context = event.obj
+        if not context.application_id == application["id"]:
+            return
 
-        def schema_failed(err_code, msg):
-            self.actionRefresh.setEnabled(True)
-            QtWidgets.QMessageBox.critical(self, "Schema retrieving error", "Error {0}: {1}".format(err_code, msg))
+        item = ContextItem(Context(context.to_json()))
+        item.setEditable(False)
+        for key in application:
+            subitem = ModelItem(key, application[key])
+            subitem.setEditable(False)
+            item.appendRow(subitem)
+        self.contexts_model.appendRow(item)
 
-        self.schema_worker = SchemaWorker(self)
-        self.schema_worker.success.connect(schema_success)
-        self.schema_worker.failed.connect(schema_failed)
-        self.schema_worker.log.connect(console.log)
-        self.schema_worker.start()
-
-    def contexts_failed(self, err_code, msg):
-        self.actionRefresh.setEnabled(True)
-        QtWidgets.QMessageBox.critical(self, "Contexts retrieving error", "Error {0}: {1}".format(err_code, msg))
-
-    def contexts_cb(self, contexts_list, application):
-        telepat = QtCore.QCoreApplication.instance().telepat_instance
-        telepat.on_update_context = self.on_update_context
-
-        self.contexts_model.setHorizontalHeaderLabels(["Contexts"])
-        self.actionRefresh.setEnabled(True)
-        for ctx in contexts_list:
-            item = ContextItem(ctx)
-            item.setEditable(False)
-            for key in application:
-                subitem = ModelItem(key, application[key])
-                subitem.setEditable(False)
-                item.appendRow(subitem)
-            self.contexts_model.appendRow(item)
+    def process_context_update_event(self, event):
+        context = event.obj
+        i = 0
+        while self.contexts_model.item(i):
+            if context.id == self.contexts_model.item(i).context.id:
+                if event.notification.notification_type == NOTIFICATION_TYPE_UPDATED:
+                    self.contexts_model.item(i).context = Context(event.obj.to_json())
+                    self.tableView.editObject(self.contexts_model.item(i).context)
+                    break
+            i += 1
             
     def event(self, event):
         if isinstance(event, ExceptionEvent):
             event.callback()
-        elif isinstance(event, TelepatObjectEvent):
-            context = event.updated_object
-            i = 0
-            while self.contexts_model.item(i):
-                if context.id == self.contexts_model.item(i).context.id:
-                    if event.notification.notification_type == NOTIFICATION_TYPE_UPDATED:
-                        self.contexts_model.item(i).context = Context(event.updated_object.to_json())
-                        self.tableView.editObject(self.contexts_model.item(i).context)
-                        break
-                i += 1
+        elif isinstance(event, TelepatContextUpdateEvent):
+            self.process_context_update_event(event)
+        elif isinstance(event, TelepatContextAddEvent):
+            self.process_context_add_event(event)
         return super(TelepatManager, self).event(event)
         
     def excepthook(self, excType, excValue, tracebackobj):
