@@ -12,13 +12,30 @@ class EditorTableModel(QtCore.QAbstractTableModel):
     
     def __init__(self, parent, basemodel):
         super(EditorTableModel, self).__init__(parent)
-        self.basemodel = basemodel
+        self._basemodel = basemodel
         rows = []
         for key in sorted(basemodel.properties().keys()):
             if not basemodel.isIgnored(key):
                 rows.append([key, basemodel[key]])
         self.columns = ["Key", "Value"]
         self.rows = rows
+
+    @property
+    def basemodel(self):
+        return self._basemodel
+
+    @basemodel.setter
+    def basemodel(self, basemodel):
+        value_dict = basemodel.to_json()
+
+        # check for updated rows
+        for row in self.rows:
+            key = row[0]
+            value = row[1]
+            if key in value_dict and value_dict[key] != value:
+                row[1] = value_dict[key]
+                self.dataChanged.emit(self.index(self.rows.index(row), 1), self.index(self.rows.index(row), 1))
+        self._basemodel = basemodel
         
     def columnCount(self, parent):
         return len(self.columns)
@@ -73,6 +90,9 @@ class EditorTableView(QtWidgets.QTableView):
         self.setColumnWidth(1, width * 0.75)
         
     def editObject(self, basemodel):
+        if self.original_object and self.original_object.id == basemodel.id:  # If it's the same object just look for updates
+            self.model().basemodel = basemodel
+            return
         self.original_object = copy(basemodel)
         model = EditorTableModel(self, basemodel)
         model.valueChanged.connect(self.valueChanged)

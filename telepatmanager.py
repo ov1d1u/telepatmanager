@@ -8,6 +8,7 @@ from functools import partial
 from const import *
 from conneditor import ConnectionEditor
 from contextitem import ContextItem
+from models.context import Context
 from modelitem import ModelItem
 from event import ExceptionEvent, TelepatObjectEvent
 from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker
@@ -194,8 +195,8 @@ class TelepatManager(QtWidgets.QMainWindow):
             while self.contexts_model.item(i):
                 if context.id == self.contexts_model.item(i).context.id:
                     if event.notification.notification_type == NOTIFICATION_TYPE_UPDATED:
-                        print("FOUND: {0}".format(context.id))
-                        self.contexts_model.item(i).context = event.updated_object
+                        self.contexts_model.item(i).context = Context(event.updated_object.to_json())
+                        self.tableView.editObject(self.contexts_model.item(i).context)
                         break
                 i += 1
         return super(TelepatManager, self).event(event)
