@@ -51,48 +51,63 @@
          </item>
         </layout>
        </widget>
-       <widget class="QTabWidget" name="tabWidget">
-        <property name="tabShape">
-         <enum>QTabWidget::Rounded</enum>
-        </property>
+       <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
-        <property name="documentMode">
-         <bool>false</bool>
-        </property>
-        <widget class="QWidget" name="tabBrowser">
-         <attribute name="title">
-          <string>Browser</string>
-         </attribute>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout">
-            <item>
-             <widget class="QLineEdit" name="browserFilterLineEdit">
-              <property name="placeholderText">
-               <string>Filter</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QListView" name="listView"/>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="tabEditor">
-         <attribute name="title">
-          <string>Editor</string>
-         </attribute>
-         <layout class="QHBoxLayout" name="horizontalLayout">
+        <widget class="QWidget" name="contextEditor" native="true">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
            <widget class="EditorTableView" name="tableView"/>
           </item>
          </layout>
+        </widget>
+        <widget class="ModelBrowser" name="modelBrowser" native="true">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="spacing">
+           <number>6</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QLineEdit" name="bFilterLineEdit">
+            <property name="placeholderText">
+             <string>Filter</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTreeView" name="treeView"/>
+          </item>
+         </layout>
          <zorder>tableView</zorder>
-         <zorder>tableView</zorder>
+         <zorder>bFilterLineEdit</zorder>
+         <zorder>treeView</zorder>
         </widget>
        </widget>
       </widget>
@@ -232,6 +247,12 @@
    <class>EditorTableView</class>
    <extends>QTableWidget</extends>
    <header>editortableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ModelBrowser</class>
+   <extends>QWidget</extends>
+   <header>modelbrowser.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

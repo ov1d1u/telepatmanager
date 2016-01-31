@@ -1,5 +1,5 @@
 from models.basemodel import BaseModel
+from telepat import TelepatAppSchema
 
-class Model(BaseModel):
-    readonly_fields = ["id", "application_id", "created", "modified", "type"]
-    model_name = "Model"
+class Model(TelepatAppSchema, BaseModel):
+    _ignored_fields = ["object_id", "model"]

@@ -4,7 +4,8 @@ from requests.exceptions import ConnectionError
 import errors
 from models.context import Context
 from models.model import Model
-from telepat.models import TelepatApplication, TelepatAppSchema
+from telepat.models import TelepatApplication, TelepatAppSchema, TelepatBaseObject
+from telepat.channel import TelepatChannel
 from telepat import TelepatTransportNotification
 
 class BaseWorker(QtCore.QThread):
@@ -91,7 +92,7 @@ class ContextsWorker(BaseWorker):
             self.success.emit(contexts_list)
 
 class SchemaWorker(BaseWorker):
-    success = QtCore.pyqtSignal(TelepatAppSchema)
+    success = QtCore.pyqtSignal(list)
     failed = QtCore.pyqtSignal(int, str)
 
     def run(self):
@@ -157,3 +158,31 @@ class ContextPatchWorker(BaseWorker):
         else:
             self.log.emit("Object {0} successfully patched".format(self.context.id))
             self.success.emit(update_response)
+
+
+class SubscribeWorker(BaseWorker):
+    success = QtCore.pyqtSignal(TelepatChannel, list)
+    failed = QtCore.pyqtSignal(int, str)
+
+    def __init__(self, parent, context, model_name, object_type):
+        super(SubscribeWorker, self).__init__(parent)
+        self.context = context
+        self.model_name = model_name
+        self.object_type = object_type
+
+    def run(self):
+        telepat = QtCore.QCoreApplication.instance().telepat_instance
+        channel = None
+        subscribe_response = None
+        try:
+            channel, subscribe_response = telepat.subscribe(self.context, self.model_name, self.object_type)
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
+        if not subscribe_response.status == 200:
+            self.log.emit("Error {0} while subscribing to {1}".format(subscribe_response.status, self.model_name))
+            self.failed.emit(subscribe_response.status, subscribe_response.message)
+        else:
+            self.log.emit("Successfully subscribed to {0}".format(channel.subscription_identifier()))
+            self.success.emit(channel, subscribe_response.getObjectOfType(TelepatBaseObject))
+

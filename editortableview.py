@@ -1,5 +1,5 @@
 from copy import copy
-from PyQt5 import QtWidgets,  QtCore
+from PyQt5 import QtWidgets, QtCore
 from workers import ContextPatchWorker
 from telepat import TelepatContext
 from models.basemodel import BaseModel

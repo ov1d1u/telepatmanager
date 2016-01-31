@@ -10,6 +10,7 @@ from event import TelepatContextAddEvent, TelepatContextUpdateEvent, ExceptionEv
 from conneditor import ConnectionEditor
 from contextitem import ContextItem
 from models.context import Context
+from models.model import Model
 from modelitem import ModelItem
 from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker
 from telepat.transportnotification import NOTIFICATION_TYPE_ADDED, NOTIFICATION_TYPE_DELETED, NOTIFICATION_TYPE_UPDATED
@@ -27,7 +28,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.actionConnect.triggered.connect(self.openConnection)
         self.actionRefresh.triggered.connect(self.refreshContexts)
         self.actionShowNameId.toggled.connect(self.showNameId)
-        self.contextsTreeView.clicked.connect(self.editItem)
+        self.contextsTreeView.clicked.connect(self.itemSelected)
         self.filterLineEdit.textChanged.connect(self.filterChanged)
 
         # Set up the UI
@@ -37,6 +38,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.setupSplitters()
         self.setupAppsCombobox()
         self.treeViewLayout.setContentsMargins(0, 0, 0, 0)
+        self.stackedWidget.setContentsMargins(0, 0, 0, 0)
         self.setUnifiedTitleAndToolBarOnMac(True)
 
         self.contexts_model = QtGui.QStandardItemModel()
@@ -98,7 +100,7 @@ class TelepatManager(QtWidgets.QMainWindow):
                 item = ContextItem(ctx)
                 item.setEditable(False)
                 for key in application.schema:
-                    subitem = ModelItem(key, application.schema[key])
+                    subitem = ModelItem(key, Model(application.schema[key].to_json()))
                     subitem.setEditable(False)
                     item.appendRow(subitem)
                 self.contexts_model.appendRow(item)
@@ -134,12 +136,14 @@ class TelepatManager(QtWidgets.QMainWindow):
     def filterChanged(self):
         self.proxy.setFilterRegExp(self.filterLineEdit.text())
 
-    def editItem(self, index):
+    def itemSelected(self, index):
         item = self.contexts_model.itemFromIndex(index.model().mapToSource(index))
         if type(item) == ContextItem:
+            self.stackedWidget.setCurrentIndex(0)
             self.tableView.editObject(item.context)
         elif type(item) == ModelItem:
-            self.tableView.editObject(item.model)
+            self.stackedWidget.setCurrentIndex(1)
+            self.modelBrowser.browseModel(item.parent().context, item.text())
 
     def showNameId(self):
         i = 0
@@ -186,7 +190,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         item = ContextItem(Context(context.to_json()))
         item.setEditable(False)
         for key in application:
-            subitem = ModelItem(key, application[key])
+            subitem = ModelItem(key, Model(application.schema[key].to_json()))
             subitem.setEditable(False)
             item.appendRow(subitem)
         self.contexts_model.appendRow(item)
