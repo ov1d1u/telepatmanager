@@ -1,8 +1,10 @@
 from copy import copy
 from PyQt5 import QtWidgets, QtCore
 from workers import ContextPatchWorker
+from objecteditor import ObjectEditor
 from telepat import TelepatContext
 from models.basemodel import BaseModel
+from models.metaobject import MetaObject
 import console
 
 
@@ -33,6 +35,7 @@ class EditorTableModel(QtCore.QAbstractTableModel):
             key = row[0]
             value = row[1]
             if key in value_dict and value_dict[key] != value:
+                QtCore.pyqtRemoveInputHook()
                 row[1] = value_dict[key]
                 self.dataChanged.emit(self.index(self.rows.index(row), 1), self.index(self.rows.index(row), 1))
         self._basemodel = basemodel
@@ -43,13 +46,13 @@ class EditorTableModel(QtCore.QAbstractTableModel):
     def rowCount(self, parent):
         return len(self.rows)
         
-    def data(self, index, role):
+    def data(self, index, role=QtCore.Qt.DisplayRole):
         value = self.rows[index.row()][index.column()]
         if not index.isValid(): 
             return QtCore.QVariant() 
         elif role != QtCore.Qt.DisplayRole and role != QtCore.Qt.EditRole: 
             return QtCore.QVariant()
-        if isinstance(value,  dict):
+        if isinstance(value, dict):
             return "[ Object ]"
         return value
         
@@ -75,6 +78,7 @@ class EditorTableModel(QtCore.QAbstractTableModel):
 
 class EditorTableView(QtWidgets.QTableView):
     original_object = None
+    updated_object = None
     
     def __init__(self, parent=None):
         super(EditorTableView,  self).__init__(parent)
@@ -83,6 +87,7 @@ class EditorTableView(QtWidgets.QTableView):
         self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
         self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
         self.verticalHeader().setVisible(False)
+        self.doubleClicked.connect(self.openObject)
         
     def resizeEvent(self, event):
         width = event.size().width()
@@ -97,19 +102,39 @@ class EditorTableView(QtWidgets.QTableView):
         model = EditorTableModel(self, basemodel)
         model.valueChanged.connect(self.valueChanged)
         self.setModel(model)
+
+    def openObject(self, index):
+        def object_saved(key, updated_object):
+            parent_object = copy(self.original_object)
+            setattr(parent_object, key, updated_object.to_json())
+            self.valueChanged(parent_object)
+
+        def object_dismissed():
+            del self.object_editor
+
+        key = index.model().data(index.model().index(index.row(), 0))
+        if isinstance(self.original_object[key], dict) and \
+            not index.model().flags(index) & QtCore.Qt.ItemIsEditable:
+            self.object_editor = ObjectEditor(self, key, MetaObject(dict(self.model().basemodel[key])))
+            self.object_editor.saved.connect(object_saved)
+            self.object_editor.rejected.connect(object_dismissed)
+            self.object_editor.show()
         
     def valueChanged(self, updated_object):
         def patch_success(response):
-            self.editObject(updated_object)
+            self.editObject(self.updated_object)
+            self.updated_object = None
             
         def patch_failed(status,  message):
             QtWidgets.QMessageBox.critical(self, "Patch error", "Error {0}: {1}".format(status, message))
-        
-        if updated_object == self.original_object:
+            self.updated_object = None
+
+        self.updated_object = updated_object
+        if self.updated_object == self.original_object:
             return
 
-        if isinstance(updated_object, TelepatContext):
-            worker = ContextPatchWorker(self, updated_object)
+        if isinstance(self.updated_object, TelepatContext):
+            worker = ContextPatchWorker(self, self.updated_object)
             worker.success.connect(patch_success)
             worker.failed.connect(patch_failed)
             worker.log.connect(console.log)

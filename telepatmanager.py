@@ -8,6 +8,7 @@ from functools import partial
 from const import *
 from event import TelepatContextAddEvent, TelepatContextUpdateEvent, ExceptionEvent
 from conneditor import ConnectionEditor
+from objecteditor import ObjectEditor
 from contextitem import ContextItem
 from models.context import Context
 from models.model import Model

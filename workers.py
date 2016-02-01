@@ -160,6 +160,14 @@ class ContextPatchWorker(BaseWorker):
             self.success.emit(update_response)
 
 
+class ObjectPatchWorker(BaseWorker):
+    success = QtCore.pyqtSignal(TelepatResponse)
+    failed = QtCore.pyqtSignal(int, str)
+
+    def __init__(self, parent):
+        pass
+
+
 class SubscribeWorker(BaseWorker):
     success = QtCore.pyqtSignal(TelepatChannel, list)
     failed = QtCore.pyqtSignal(int, str)

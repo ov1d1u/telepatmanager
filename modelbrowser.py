@@ -1,7 +1,9 @@
 from PyQt5 import QtGui, QtWidgets, QtCore
 import telepat
 from telepat.models import TelepatBaseObject
+from models.telepatobject import TelepatObject
 from workers import SubscribeWorker
+from objecteditor import ObjectEditor
 import console
 
 
@@ -25,6 +27,8 @@ class BrowserModel(QtGui.QStandardItemModel):
 
     def __init__(self, parent, objects):
         super(BrowserModel, self).__init__(parent)
+        self.objects = objects
+
         # Create a list of columns
         columns = []
         for obj in objects:
@@ -56,6 +60,8 @@ class BrowserModel(QtGui.QStandardItemModel):
 
 
 class ModelBrowser(QtWidgets.QWidget):
+    channel = None
+
     def browseModel(self, telepat_context, telepat_model):
         def on_subscribe_success(channel, objects):
             self.model = BrowserModel(self.treeView, objects)
@@ -65,16 +71,23 @@ class ModelBrowser(QtWidgets.QWidget):
             self.treeView.setModel(self.proxyModel)
             self.treeView.resizeColumnToContents(0)
 
+            self.channel = channel
+
         def on_subscribe_failure(self, err_code, err_message):
             print("Error msg: {0}".format(err_message))
 
-        self.treeView = self.findChild(QtWidgets.QTreeView, "treeView")
-        self.bFilterLineEdit = self.findChild(QtWidgets.QLineEdit, "bFilterLineEdit")
-        self.treeView.setSortingEnabled(True)
-        self.treeView.setRootIsDecorated(False)
-        self.treeView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        if not hasattr(self, "treeView"):
+            self.treeView = self.findChild(QtWidgets.QTreeView, "treeView")
+            self.treeView.setSortingEnabled(True)
+            self.treeView.setRootIsDecorated(False)
+            self.treeView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+            self.treeView.doubleClicked.connect(self.editObject)
+        
+        if not hasattr(self, "bFilterLineEdit"):
+            self.bFilterLineEdit = self.findChild(QtWidgets.QLineEdit, "bFilterLineEdit")
+            self.bFilterLineEdit.textChanged.connect(self.filterChanged)
+
         self.treeView.setModel(None)
-        self.bFilterLineEdit.textChanged.connect(self.filterChanged)
 
         worker = SubscribeWorker(self, telepat_context, telepat_model, TelepatBaseObject)
         worker.success.connect(on_subscribe_success)
@@ -86,3 +99,24 @@ class ModelBrowser(QtWidgets.QWidget):
         if hasattr(self, "proxyModel"):
             self.proxyModel.invalidateFilter()
             self.proxyModel.setFilterFixedString(self.bFilterLineEdit.text())
+
+    def editObject(self, index):
+        def object_saved(key, updated_object):
+            row = self.proxyModel.mapToSource(index).row()
+            obj = index.model().sourceModel().objects[row]
+            telepat_object = TelepatBaseObject(updated_object.to_json())
+            patches = obj.patch_against(telepat_object)
+            self.channel.patch(updated_object)
+
+        def object_dismissed():
+            if hasattr(self, "object_editor"):
+                del self.object_editor
+
+        row = self.proxyModel.mapToSource(index).row()
+        obj = index.model().sourceModel().objects[row]
+        print(obj.to_json())
+        self.object_editor = ObjectEditor(self, "", TelepatObject(obj.to_json()))
+        self.object_editor.saved.connect(object_saved)
+        self.object_editor.rejected.connect(object_dismissed)
+        self.object_editor.show()
+        
