@@ -23,7 +23,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         super(TelepatManager, self).__init__(parent)
         self.applications = []
 
-        uic.loadUi('main.ui', self)
+        uic.loadUi('telepatmanager.ui', self)
         console.set_widget(self.loggerWidget)
 
         self.actionConnect.triggered.connect(self.openConnection)
