@@ -1,11 +1,64 @@
 from copy import copy
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from workers import ContextPatchWorker
 from objecteditor import ObjectEditor
 from telepat import TelepatContext
 from models.basemodel import BaseModel
 from models.metaobject import MetaObject
 import console
+
+
+class ComboBoxDelegate(QtWidgets.QItemDelegate):
+    def __init__(self, parent, basemodel, objects_map):
+        super(ComboBoxDelegate, self).__init__(parent)
+        self.basemodel = basemodel
+        self.objects_map = objects_map
+        
+        rows = []
+        for key in sorted(basemodel.keys()):
+            if not basemodel.isIgnored(key):
+                rows.append([key, basemodel[key]])
+        self.rows = rows
+
+    def createEditor(self, parent, option, index):
+        key = self.rows[index.row()][0][:-3]
+        if not key in self.objects_map:
+            return super(ComboBoxDelegate, self).createEditor(parent, option, index)
+
+        ids = []
+        for obj in self.objects_map[key]:
+            ids.append(obj.id)
+
+        editor = QtWidgets.QComboBox(parent)
+        editor.addItems(ids)
+        editor.setCurrentIndex(0)
+        editor.installEventFilter(self)
+        return editor
+ 
+    def setEditorData(self, editor, index):
+        key = self.rows[index.row()][0][:-3]
+        if not key in self.objects_map:
+            return super(ComboBoxDelegate, self).setEditorData(editor, index)
+
+        value = index.data(QtCore.Qt.DisplayRole)
+        ids = []
+        for obj in self.objects_map[key]:
+            ids.append(obj.id)
+
+        editor.setCurrentIndex(ids.index(value))
+ 
+    def setModelData(self, editor, model, index):
+        key = self.rows[index.row()][0]
+        if not key in self.objects_map:
+            return super(ComboBoxDelegate, self).setModelData(editor, model, index)
+        value = editor.currentIndex()
+        model.setData(index, value, QtCore.Qt.DisplayRole)
+ 
+    def updateEditorGeometry(self, editor, option, index):
+        key = self.rows[index.row()][0]
+        if not key in self.objects_map:
+            return super(ComboBoxDelegate, self).updateEditorGeometry(editor, option, index)
+        editor.setGeometry(option.rect)
 
 
 class EditorTableModel(QtCore.QAbstractTableModel):
@@ -94,14 +147,21 @@ class EditorTableView(QtWidgets.QTableView):
         self.setColumnWidth(0, width * 0.25)
         self.setColumnWidth(1, width * 0.75)
         
-    def editObject(self, basemodel):
+    def editObject(self, basemodel, objects_map=None):
         if self.original_object and self.original_object.id == basemodel.id:  # If it's the same object just look for updates
             self.model().basemodel = basemodel
             return
         self.original_object = copy(basemodel)
+        self.objects_map = objects_map if objects_map else {}
         model = EditorTableModel(self, basemodel)
         model.valueChanged.connect(self.valueChanged)
         self.setModel(model)
+        self.setItemDelegateForColumn(1, ComboBoxDelegate(self, basemodel, self.objects_map))
+
+        for row in range(0, model.rowCount(None)):
+            key = model.rows[row][0][:-3]
+            if key in self.objects_map:
+                self.openPersistentEditor(model.index(row, 1))
 
     def openObject(self, index):
         def object_saved(key, updated_object):

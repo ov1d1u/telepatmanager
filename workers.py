@@ -92,7 +92,7 @@ class ContextsWorker(BaseWorker):
             self.success.emit(contexts_list)
 
 class SchemaWorker(BaseWorker):
-    success = QtCore.pyqtSignal(list)
+    success = QtCore.pyqtSignal(TelepatAppSchema)
     failed = QtCore.pyqtSignal(int, str)
 
     def run(self):

@@ -8,7 +8,6 @@ from functools import partial
 from const import *
 from event import TelepatContextAddEvent, TelepatContextUpdateEvent, ExceptionEvent
 from conneditor import ConnectionEditor
-from objecteditor import ObjectEditor
 from contextitem import ContextItem
 from models.context import Context
 from models.model import Model
@@ -28,6 +27,7 @@ class TelepatManager(QtWidgets.QMainWindow):
 
         self.actionConnect.triggered.connect(self.openConnection)
         self.actionRefresh.triggered.connect(self.refreshContexts)
+        self.actionEditApp.triggered.connect(self.editApplication)
         self.actionShowNameId.toggled.connect(self.showNameId)
         self.contextsTreeView.clicked.connect(self.itemSelected)
         self.filterLineEdit.textChanged.connect(self.filterChanged)
@@ -81,7 +81,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.appsCombobox.currentIndexChanged.connect(self.currentAppChanged)
         layout.addWidget(QtWidgets.QLabel("Application:"))
         layout.addWidget(self.appsCombobox)
-        self.toolBar.insertWidget(self.actionEditApp, widget)
+        self.applicationToolbar.insertWidget(self.actionEditApp, widget)
 
     def openConnection(self, connection_dict=None):
         self.connectionEditor = ConnectionEditor(self, connection_dict)
@@ -117,6 +117,20 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.contexts_worker.failed.connect(contexts_failed)
         self.contexts_worker.log.connect(console.log)
         self.contexts_worker.start()
+
+    def editApplication(self):
+        def schema_success(app_schema):
+            import json
+            print(json.dumps(app_schema.to_json()))
+
+        def schema_failed(err_code, err_msg):
+            QtWidgets.QMessageBox.critical(self, "Schema retrieving error", "Error {0}: {1}".format(err_code, msg))
+
+        self.schema_worker = SchemaWorker()
+        self.schema_worker.success.connect(schema_success)
+        self.schema_worker.failed.connect(schema_failed)
+        self.schema_worker.log.connect(console.log)
+        self.schema_worker.start()
 
     def on_update_context(self, context, notification):
         event = TelepatContextUpdateEvent(context, notification)

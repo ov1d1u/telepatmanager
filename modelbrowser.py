@@ -63,6 +63,9 @@ class ModelBrowser(QtWidgets.QWidget):
     channel = None
 
     def browseModel(self, telepat_context, telepat_model):
+        self.telepat_context = telepat_context
+        self.telepat_model = telepat_model
+
         if self.channel:
             self.unsubscribe()
 
@@ -104,7 +107,7 @@ class ModelBrowser(QtWidgets.QWidget):
             self.proxyModel.setFilterFixedString(self.bFilterLineEdit.text())
 
     def editObject(self, index):
-        def object_saved(key, updated_object):
+        def object_saved(updated_object):
             row = self.proxyModel.mapToSource(index).row()
             obj = index.model().sourceModel().objects[row]
             telepat_object = TelepatBaseObject(updated_object.to_json())
@@ -117,8 +120,7 @@ class ModelBrowser(QtWidgets.QWidget):
 
         row = self.proxyModel.mapToSource(index).row()
         obj = index.model().sourceModel().objects[row]
-        print(obj.to_json())
-        self.object_editor = ObjectEditor(self, "", TelepatObject(obj.to_json()))
+        self.object_editor = ObjectEditor(self, self.telepat_context, TelepatObject(obj.to_json()))
         self.object_editor.saved.connect(object_saved)
         self.object_editor.rejected.connect(object_dismissed)
         self.object_editor.show()
