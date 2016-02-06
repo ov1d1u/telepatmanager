@@ -2,7 +2,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 import telepat
 from telepat.models import TelepatBaseObject
 from models.telepatobject import TelepatObject
-from workers import SubscribeWorker
+from workers import SubscribeWorker, UnsubscribeWorker
 from objecteditor import ObjectEditor
 import console
 
@@ -63,6 +63,9 @@ class ModelBrowser(QtWidgets.QWidget):
     channel = None
 
     def browseModel(self, telepat_context, telepat_model):
+        if self.channel:
+            self.unsubscribe()
+
         def on_subscribe_success(channel, objects):
             self.model = BrowserModel(self.treeView, objects)
             self.proxyModel = ModelSortFilterProxyModel(self)
@@ -120,3 +123,15 @@ class ModelBrowser(QtWidgets.QWidget):
         self.object_editor.rejected.connect(object_dismissed)
         self.object_editor.show()
         
+    def unsubscribe(self):
+        def on_unsubscribe_success(self):
+            pass
+
+        def on_unsubscribe_failure(self, err_code, err_message):
+            print("Error msg: {0}".format(err_message))
+
+        worker = UnsubscribeWorker(self, self.channel)
+        worker.success.connect(on_unsubscribe_success)
+        worker.failed.connect(on_unsubscribe_failure)
+        worker.log.connect(console.log)
+        worker.start()

@@ -194,3 +194,27 @@ class SubscribeWorker(BaseWorker):
             self.log.emit("Successfully subscribed to {0}".format(channel.subscription_identifier()))
             self.success.emit(channel, subscribe_response.getObjectOfType(TelepatBaseObject))
 
+
+
+class UnsubscribeWorker(BaseWorker):
+    success = QtCore.pyqtSignal(TelepatResponse)
+    failed = QtCore.pyqtSignal(int, str)
+
+    def __init__(self, parent, channel):
+        super(UnsubscribeWorker, self).__init__(parent)
+        self.channel = channel
+
+    def run(self):
+        telepat = QtCore.QCoreApplication.instance().telepat_instance
+        unsubscribe_response = None
+        try:
+            unsubscribe_response = telepat.remove_subscription(self.channel)
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
+        if not unsubscribe_response.status == 200:
+            self.log.emit("Error {0} while usubscribing from {1}".format(unsubscribe_response.status, self.channel.model_name))
+            self.failed.emit(unsubscribe_response.status, unsubscribe_response.message)
+        else:
+            self.log.emit("Successfully unsubscribed from {0}".format(self.channel.subscription_identifier()))
+            self.success.emit(unsubscribe_response)
