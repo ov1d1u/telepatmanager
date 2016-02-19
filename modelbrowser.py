@@ -1,9 +1,10 @@
-from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5 import Qt, QtGui, QtWidgets, QtCore
 import telepat
 from telepat.models import TelepatBaseObject
 from models.telepatobject import TelepatObject
 from workers import SubscribeWorker, UnsubscribeWorker
 from objecteditor import ObjectEditor
+from event import TelepatObjectUpdateEvent
 import console
 
 
@@ -57,6 +58,27 @@ class BrowserModel(QtGui.QStandardItemModel):
                     items_row.append(QtGui.QStandardItem(""))
             self.appendRow(items_row)
 
+    def event(self, event):
+        if isinstance(event, TelepatObjectUpdateEvent):
+            updated_object = event.obj
+            changed_property = event.notification.path.split('/')[-1:][0]
+            # update the internal objects storage
+            for n, i in enumerate(self.objects):
+                if i.id == updated_object.id:
+                    self.objects[n] = updated_object
+                    break
+
+            # update the UI
+            i = 0
+            while self.item(i):
+                obj_id = self.item(i).text()
+                if obj_id == updated_object.id:
+                    for j in range(0, self.columnCount()):
+                        if self.headerData(j, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == changed_property:
+                            self.setData(self.index(i, j), event.notification.value)
+                    break
+                i += 1
+        return super(BrowserModel, self).event(event)
 
 
 class ModelBrowser(QtWidgets.QWidget):
@@ -79,8 +101,9 @@ class ModelBrowser(QtWidgets.QWidget):
             self.treeView.resizeColumnToContents(0)
 
             self.channel = channel
+            self.channel.on_update_object = self.on_update_object
 
-        def on_subscribe_failure(self, err_code, err_message):
+        def on_subscribe_failure(err_code, err_message):
             print("Error msg: {0}".format(err_message))
 
         if not hasattr(self, "treeView"):
@@ -125,6 +148,10 @@ class ModelBrowser(QtWidgets.QWidget):
         self.object_editor.saved.connect(object_saved)
         self.object_editor.rejected.connect(object_dismissed)
         self.object_editor.show()
+
+    def on_update_object(self, updated_object, notification):
+        event = TelepatObjectUpdateEvent(updated_object, notification)
+        QtWidgets.QApplication.postEvent(self.model, event)
         
     def unsubscribe(self):
         def on_unsubscribe_success():

@@ -1,6 +1,5 @@
 from PyQt5 import QtCore
-from const import TM_EVENT_ON_ADD_CONTEXT, TM_EVENT_ON_UPDATE_CONTEXT
-
+from const import *
 
 class ExceptionEvent(QtCore.QEvent):
     callback = None
@@ -27,3 +26,18 @@ class TelepatContextUpdateEvent(TelepatObjectEvent):
 class TelepatContextAddEvent(TelepatObjectEvent):
     def __init__(self, obj, notification):
         super(TelepatContextAddEvent, self).__init__(obj, notification, TM_EVENT_ON_ADD_CONTEXT)
+
+
+class TelepatObjectAddEvent(TelepatObjectEvent):
+    def __init__(self, obj, notification):
+        super(TelepatObjectAddEvent, self).__init__(obj, notification, TM_EVENT_ON_ADD_OBJECT)
+
+
+class TelepatObjectUpdateEvent(TelepatObjectEvent):
+    def __init__(self, obj, notification):
+        super(TelepatObjectUpdateEvent, self).__init__(obj, notification, TM_EVENT_ON_UPDATE_OBJECT)
+
+
+class TelepatObjectDeleteEvent(TelepatObjectEvent):
+    def __init__(self, obj, notification):
+        super(TelepatObjectDeleteEvent, self).__init__(obj, notification, TM_EVENT_ON_DELETE_OBJECT)
