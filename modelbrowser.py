@@ -62,9 +62,10 @@ class BrowserModel(QtGui.QStandardItemModel):
 class ModelBrowser(QtWidgets.QWidget):
     channel = None
 
-    def browseModel(self, telepat_context, telepat_model):
+    def browseModel(self, telepat_context, telepat_model, app_users):
         self.telepat_context = telepat_context
         self.telepat_model = telepat_model
+        self.app_users = app_users
 
         if self.channel:
             self.unsubscribe()
@@ -120,16 +121,16 @@ class ModelBrowser(QtWidgets.QWidget):
 
         row = self.proxyModel.mapToSource(index).row()
         obj = index.model().sourceModel().objects[row]
-        self.object_editor = ObjectEditor(self, self.telepat_context, TelepatObject(obj.to_json()))
+        self.object_editor = ObjectEditor(self, self.telepat_context, self.app_users, TelepatObject(obj.to_json()))
         self.object_editor.saved.connect(object_saved)
         self.object_editor.rejected.connect(object_dismissed)
         self.object_editor.show()
         
     def unsubscribe(self):
-        def on_unsubscribe_success(self):
+        def on_unsubscribe_success():
             pass
 
-        def on_unsubscribe_failure(self, err_code, err_message):
+        def on_unsubscribe_failure(err_code, err_message):
             print("Error msg: {0}".format(err_message))
 
         worker = UnsubscribeWorker(self, self.channel)

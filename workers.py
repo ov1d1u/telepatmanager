@@ -4,7 +4,7 @@ from requests.exceptions import ConnectionError
 import errors
 from models.context import Context
 from models.model import Model
-from telepat.models import TelepatApplication, TelepatAppSchema, TelepatBaseObject
+from telepat.models import TelepatApplication, TelepatAppSchema, TelepatBaseObject, TelepatUser
 from telepat.channel import TelepatChannel
 from telepat import TelepatTransportNotification
 
@@ -112,6 +112,26 @@ class SchemaWorker(BaseWorker):
             app_schema = schema_response.getObjectOfType(TelepatAppSchema)
             self.log.emit("Successfully retrieved application schema")
             self.success.emit(app_schema)
+
+
+class UsersWorker(BaseWorker):
+    success = QtCore.pyqtSignal(list)
+    failed = QtCore.pyqtSignal(int, str)
+
+    def run(self):
+        telepat = QtCore.QCoreApplication.instance().telepat_instance
+        try:
+            users_response = telepat.get_users()
+        except ConnectionError as e:
+            self.connection_error(e)
+            return
+        if not users_response.status == 200:
+            self.log.emit("Error {0} while retrieving app users: {1}".format(users_response.status, users_response.message))
+            self.failed.emit(users_response.status, users_response.message)
+        else:
+            users_list = users_response.getObjectOfType(TelepatUser)
+            self.log.emit("Successfully retrieved {0} users".format(len(users_list)))
+            self.success.emit(users_list)
 
 
 class ApplicationsWorker(BaseWorker):

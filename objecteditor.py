@@ -35,12 +35,13 @@ class ObjectsWorker(BaseWorker):
 class ObjectEditor(QtWidgets.QDialog):
     saved = QtCore.pyqtSignal(TelepatBaseObject)
 
-    def __init__(self, parent, context, obj):
+    def __init__(self, parent, context, app_users, obj):
         super(ObjectEditor, self).__init__(parent)
 
         uic.loadUi('objecteditor.ui', self)
         self.edited_object = obj
         self.context = context
+        self.app_users = app_users
         self.related_models = {}
 
         self.schema_worker = SchemaWorker()
@@ -65,7 +66,7 @@ class ObjectEditor(QtWidgets.QDialog):
         if len(relations) == 0:
             self.progressBar.setValue(0)
             self.progressBar.hide()
-            self.tableView.editObject(self.edited_object)
+            self.tableView.editObject(self.edited_object, {"user": self.app_users})
         else:
             self.objects_worker = ObjectsWorker(self, self.context, relations)
             self.objects_worker.success.connect(self.on_related_objects_success)
@@ -79,6 +80,7 @@ class ObjectEditor(QtWidgets.QDialog):
     def on_related_objects_success(self, objects_map):
         self.progressBar.setValue(0)
         self.progressBar.hide()
+        objects_map["user"] = self.app_users
         self.tableView.editObject(self.edited_object, objects_map)
 
     def on_related_objects_failed(self, err_code, err_msg):

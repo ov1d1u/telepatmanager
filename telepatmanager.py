@@ -12,7 +12,7 @@ from contextitem import ContextItem
 from models.context import Context
 from models.model import Model
 from modelitem import ModelItem
-from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker
+from workers import ContextsWorker, SchemaWorker, ApplicationsWorker, RegisterWorker, UsersWorker
 from telepat.transportnotification import NOTIFICATION_TYPE_ADDED, NOTIFICATION_TYPE_DELETED, NOTIFICATION_TYPE_UPDATED
 import console
 
@@ -118,6 +118,19 @@ class TelepatManager(QtWidgets.QMainWindow):
         self.contexts_worker.log.connect(console.log)
         self.contexts_worker.start()
 
+    def getUsers(self):
+        def users_success(users_list):
+            self.app_users = users_list
+
+        def users_failed(err_code, err_msg):
+            QtWidgets.QMessageBox.critical(self, "Cannot get application's users list", "Error {0}: {1}".format(err_code, err_msg))
+
+        self.users_worker = UsersWorker()
+        self.users_worker.success.connect(users_success)
+        self.users_worker.failed.connect(users_failed)
+        self.users_worker.log.connect(console.log)
+        self.users_worker.start()
+
     def editApplication(self):
         def schema_success(app_schema):
             import json
@@ -146,6 +159,7 @@ class TelepatManager(QtWidgets.QMainWindow):
         telepat.app_id = app["id"]
         telepat.api_key = app["keys"][0]
         self.registerDevice()
+        self.getUsers()
         self.refreshContexts()
 
     def filterChanged(self):
@@ -158,7 +172,7 @@ class TelepatManager(QtWidgets.QMainWindow):
             self.tableView.editObject(item.context)
         elif type(item) == ModelItem:
             self.stackedWidget.setCurrentIndex(1)
-            self.modelBrowser.browseModel(item.parent().context, item.text())
+            self.modelBrowser.browseModel(item.parent().context, item.text(), self.app_users)
 
     def showNameId(self):
         i = 0
